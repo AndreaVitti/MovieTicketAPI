@@ -10,6 +10,8 @@ import com.project.ticketapp.bookingTicketApp.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +23,15 @@ public class UserServiceImpl implements UserService {
     @Override
     public Response getAllUsers() {
         Response response = new Response();
-        response.setUserDTOList(Utility.mapUserListtoUserDTOList(userRepository.findAll()));
+        List<User> users = userRepository.findAll();
+
+        /*Check is there are any users*/
+        if (users.isEmpty()) {
+            response.setHttpCode(404);
+            response.setMessage("No users found");
+            return response;
+        }
+        response.setUserDTOList(Utility.mapUserListtoUserDTOList(users));
         response.setHttpCode(200);
         return response;
     }
@@ -30,6 +40,8 @@ public class UserServiceImpl implements UserService {
     public Response getUserbyId(Long id) {
         Response response = new Response();
         User user;
+
+        /*Check there is a user based on the provided id*/
         try {
             user = userRepository.findById(id).orElseThrow(() -> new CustomException("User " + id + " not found"));
             response.setHttpCode(200);
@@ -47,6 +59,8 @@ public class UserServiceImpl implements UserService {
     public Response getTicketsByUserId(Long id) {
         Response response = new Response();
         User user;
+
+        /*Check there is a user based on the provided id*/
         try {
             user = userRepository.findById(id).orElseThrow(() -> new CustomException("User " + id + " not found"));
         } catch (CustomException e) {
@@ -54,6 +68,8 @@ public class UserServiceImpl implements UserService {
             response.setMessage(e.getMessage());
             return response;
         }
+
+        /*Check if a user is accessing his own resources*/
         if (userCheckService.checkUser(id, response) != null) {
             return response;
         }
@@ -65,6 +81,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public Response deleteUser(Long id) {
         Response response = new Response();
+
+        /*Check there is a user based on the provided id*/
         try {
             userRepository.findById(id).orElseThrow(() -> new CustomException("User " + id + " not found"));
         } catch (CustomException e) {

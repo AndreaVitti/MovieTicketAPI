@@ -43,6 +43,11 @@ public class AuthenticationController {
         return ResponseEntity.status(response.getHttpCode()).body(response);
     }
 
+    /*
+    Post request to receive a new access token through a refresh token
+    It takes as parameter a request containing the refresh token
+     */
+
     @PostMapping("/refreshToken")
     public ResponseEntity<Response> refreshToken(HttpServletRequest refreshRequest, HttpServletResponse refreshResponse) {
         Response response = authenticationService.refreshToken(refreshRequest, refreshResponse);

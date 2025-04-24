@@ -15,13 +15,18 @@ public class CustomLogOutService implements LogoutHandler {
 
     private final TokenRepository tokenRepository;
 
+    /*Method for user logouts*/
     @Override
     public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
+
+        /*Check if the header is valid*/
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return;
         }
+
+        /*If valid set token logout to true*/
         jwt = authHeader.substring(7);
         Token jwtToken = tokenRepository.findByJwtToken(jwt).orElse(null);
         if (jwtToken != null) {

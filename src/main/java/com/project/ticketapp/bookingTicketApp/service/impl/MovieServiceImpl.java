@@ -28,6 +28,8 @@ public class MovieServiceImpl implements MovieService {
         movie.setGenre(movieDTO.getGenre());
         movie.setStart(movieDTO.getStart());
         movie.setDuration(movieDTO.getDuration());
+
+        /*Check if the movie has a valid time frame*/
         try {
             if (!isMovieValid(movie)) {
                 throw new CustomException("Movie is not valid");
@@ -46,6 +48,8 @@ public class MovieServiceImpl implements MovieService {
     public Response getAllMovies() {
         Response response = new Response();
         List<Movie> movies = movieRepository.findAll();
+
+        /*Check if there are any movies*/
         if (movies.isEmpty()) {
             response.setHttpCode(404);
             response.setMessage("No movies found");
@@ -60,6 +64,8 @@ public class MovieServiceImpl implements MovieService {
     public Response getMoviebyId(Long id) {
         Response response = new Response();
         MovieDTO movieDTO;
+
+        /*Check there is a movie based on the provided id*/
         try {
             movieDTO = Utility.mapMovietoMovieDTO(movieRepository
                     .findById(id)
@@ -78,6 +84,8 @@ public class MovieServiceImpl implements MovieService {
     public Response getMoviebyName(String name) {
         Response response = new Response();
         List<MovieDTO> movieDTOS;
+
+        /*Check there are movies based on the provided title*/
         try {
             movieDTOS = Utility.mapMovieListtoMovieDTOList(movieRepository
                     .findByName(name)
@@ -97,10 +105,14 @@ public class MovieServiceImpl implements MovieService {
         Response response = new Response();
         List<Movie> movies;
         List<Movie> moviesAvailable;
+
         try {
+            /*Check there are movies based on the provided name*/
             movies = movieRepository
                     .findByName(name)
                     .orElseThrow(() -> new CustomException("The movie " + name + " does not exist"));
+
+            /*Check if the movies have enough seats and have not aired*/
             moviesAvailable = movies.stream().filter(movie -> isMovieAvailable(movie)).toList();
             if (moviesAvailable.isEmpty()) {
                 throw new CustomException("The movie " + name + " is not available");
@@ -119,6 +131,8 @@ public class MovieServiceImpl implements MovieService {
     public Response getMoviebyGenre(String genre) {
         Response response = new Response();
         List<MovieDTO> movieDTOS;
+
+        /*Check there are movies based on the provided genre*/
         try {
             movieDTOS = Utility.mapMovieListtoMovieDTOList(movieRepository
                     .findByGenre(genre)
@@ -137,6 +151,8 @@ public class MovieServiceImpl implements MovieService {
     public Response getTicketsById(Long id) {
         Response response = new Response();
         Movie movie;
+
+        /*Check there is a movie based on the provided id*/
         try {
             movie = (movieRepository
                     .findById(id)
@@ -154,6 +170,8 @@ public class MovieServiceImpl implements MovieService {
     @Override
     public Response deleteMovie(Long id) {
         Response response = new Response();
+
+        /*Check there is a movie based on the provided id*/
         try {
             movieRepository.findById(id).orElseThrow(() -> new CustomException("The movie " + id + " does not exist"));
         } catch (CustomException e) {
@@ -170,6 +188,8 @@ public class MovieServiceImpl implements MovieService {
     public Response updateMovie(Long id, String name, String summary, String genre, LocalDateTime start, Integer duration) {
         Response response = new Response();
         Movie movie;
+
+        /*Check there is a movie based on the provided id*/
         try {
             movie = movieRepository
                     .findById(id)
@@ -179,6 +199,8 @@ public class MovieServiceImpl implements MovieService {
             response.setMessage(e.getMessage());
             return response;
         }
+
+        /*Check if the parameters provided are valid*/
         if (name != null && !(movie.getName().equals(name))) {
             movie.setName(name);
         }
@@ -199,6 +221,7 @@ public class MovieServiceImpl implements MovieService {
         return response;
     }
 
+    /*Checks if a movie can be added based on a comparison between its time frame and the others'*/
     private boolean isMovieValid(Movie movie) {
         return movieRepository.findAll().stream().noneMatch(
                 m -> movie.getStart().isAfter(m.getStart()) && movie.getStart().isBefore(m.getFinish())
@@ -207,14 +230,21 @@ public class MovieServiceImpl implements MovieService {
         );
     }
 
+    /*Check if the movie is available for booking*/
     @Override
     public boolean isMovieAvailable(Movie movie) {
+
+        /*Check if the movie has not aired yet*/
         if (movie.getStart().isBefore(LocalDateTime.now())) {
             return false;
         }
+
+        /*Check there are not booked tickets*/
         if (movie.getTickets() == null) {
             return true;
         }
+
+        /*Check there the number of available seats*/
         return movie.getTickets().size() < movie.getNumOfSeats();
     }
 }

@@ -6,11 +6,11 @@ import com.project.ticketapp.bookingTicketApp.dto.RegisterRequest;
 import com.project.ticketapp.bookingTicketApp.dto.Response;
 import com.project.ticketapp.bookingTicketApp.entity.Token;
 import com.project.ticketapp.bookingTicketApp.entity.User;
+import com.project.ticketapp.bookingTicketApp.exception.CustomException;
 import com.project.ticketapp.bookingTicketApp.repository.TokenRepository;
 import com.project.ticketapp.bookingTicketApp.repository.UserRepository;
 import com.project.ticketapp.bookingTicketApp.service.AuthenticationService;
 import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.io.IOException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +18,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,12 +41,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         user.setFirstname(regRequest.getFirstname());
         user.setLastname(regRequest.getLastname());
         user.setEmail(regRequest.getEmail());
+
+        /*Encode the password*/
         user.setPassword(passwordEncoder.encode(regRequest.getPassword()));
         user.setPhone(regRequest.getPhone());
         user.setRole(regRequest.getRole());
         userRepository.save(user);
+
+        /*Generate both refresh and access tokens*/
         String jwt = jwtService.generateToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
+
+        /*Generate and store in the table the objects containing the tokens*/
         createTokenObj(jwt, user);
         createTokenObj(refreshToken, user);
         Response response = new Response();
@@ -64,9 +69,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 authRequest.getPassword())
         );
         User user = userRepository.findByEmail(authRequest.getEmail()).orElseThrow();
+
+        /*Generate both refresh and access tokens*/
         String jwt = jwtService.generateToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
+
+        /*Invalidate older tokens*/
         disableAllToken(user);
+
+        /*Generate and store in the table the objects containing the tokens*/
         createTokenObj(jwt, user);
         createTokenObj(refreshToken, user);
         Response response = new Response();
@@ -82,6 +93,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         final String authHeader = refreshRequest.getHeader("Authorization");
         final String refreshJWToken;
         final String userEmail;
+
+        /*Checks if the header is valid*/
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             response.setHttpCode(403);
             response.setMessage("Unauthorized");
@@ -90,11 +103,28 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         refreshJWToken = authHeader.substring(7);
         userEmail = jwtService.extractUsername(refreshJWToken);
         if (userEmail != null) {
-            User user = userRepository.findByEmail(userEmail).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+            User user;
+
+            /*Checks if the user exists*/
+            try {
+                user = userRepository.findByEmail(userEmail).orElseThrow(() -> new CustomException("User not found"));
+            } catch (CustomException e) {
+                response.setHttpCode(404);
+                response.setMessage(e.getMessage());
+                return response;
+            }
+
+            /*Checks if the refresh token is valid*/
             if (jwtService.isTokenValid(refreshJWToken, user)) {
+
+                /*Generate both access and refresh tokens*/
                 String JwtToken = jwtService.generateToken(user);
                 String newRefreshToken = jwtService.generateRefreshToken(user);
+
+                /*Invalidate older tokens*/
                 disableAllToken(user);
+
+                /*Generate and store in the table the objects containing the tokens*/
                 createTokenObj(JwtToken, user);
                 createTokenObj(newRefreshToken, user);
                 response.setHttpCode(200);
@@ -108,6 +138,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         return response;
     }
 
+    /*Invalidate all previously stored tokens*/
     private void disableAllToken(User user) {
         List<Token> tokens = tokenRepository.findTokenByUserId(user.getId());
         if (!tokens.isEmpty()) {
@@ -116,6 +147,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         tokenRepository.saveAll(tokens);
     }
 
+    /*Generate and store in the table the objects containing the tokens*/
     private void createTokenObj(String jwt, User user) {
         Token jwtToken = new Token();
         jwtToken.setJwtToken(jwt);
@@ -124,6 +156,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         tokenRepository.save(jwtToken);
     }
 
+    /*Scheduled task that removes invalid tokens from the table*/
     @Transactional
     @Scheduled(fixedDelayString = "${scheduledTask.delay}")
     public void deleteExpiredTokens() {

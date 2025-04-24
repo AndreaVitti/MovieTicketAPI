@@ -39,6 +39,10 @@ public class TicketController {
         return ResponseEntity.status(response.getHttpCode()).body(response);
     }
 
+    /*
+    Get request that let admins get a ticket specified by its id
+    It takes as parameter the ticket id to search for
+     */
 
     @GetMapping("/getById/{id}")
     @PreAuthorize("hasAuthority('ADMIN')")

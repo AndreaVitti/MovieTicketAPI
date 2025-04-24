@@ -23,11 +23,15 @@ public class SeatServiceImpl implements SeatService {
     @Override
     public Response setNumOfSeats(Integer num) {
         Response response = new Response();
+
+        /*Check if the number of seats is not 0 or less*/
         if (num < 1) {
             response.setHttpCode(400);
             response.setMessage("Can't be lower than 1");
             return response;
         }
+
+        /*Create n number of seat objects*/
         Seat.setSeatTotal(num);
         int count = 1;
         for (int i = 0; i < num; i++) {
@@ -44,6 +48,8 @@ public class SeatServiceImpl implements SeatService {
     public Response getAllSeats() {
         Response response = new Response();
         List<Seat> seats = seatsRepository.findAll();
+
+        /*Check is there are any seats*/
         if (seats.isEmpty()) {
             response.setHttpCode(404);
             response.setMessage("No seats found");
@@ -58,6 +64,8 @@ public class SeatServiceImpl implements SeatService {
     public Response getAvailableSeatsByMovieId(Long id) {
         Response response = new Response();
         Movie movie;
+
+        /*Check there is a movie based on the provided id*/
         try {
             movie = movieRepository
                     .findById(id)
@@ -69,6 +77,8 @@ public class SeatServiceImpl implements SeatService {
         }
         List<String> bookedSeats = movie.getBookedSeats().stream().map(bookedSeat -> bookedSeat.getBookedSeatNumb()).toList();
         response.setHttpCode(200);
+
+        /*Filter out the booked seats*/
         response.setSeatDTOList(Utility.mapSeatListtoSeatDTOList(seatsRepository
                 .findAll()
                 .stream()

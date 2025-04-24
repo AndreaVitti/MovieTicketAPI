@@ -43,21 +43,31 @@ public class TicketServiceImpl implements TicketService {
         User user;
         Seat seat;
         try {
+
+            /*Check there is a movie based on the provided id*/
             movie = movieRepository.findById(movieId).orElseThrow(() -> new CustomException("Movie " + movieId + " not found"));
             if (!movieService.isMovieAvailable(movie)) {
                 throw new CustomException("No available movie found");
             }
+
+            /*Check there is a movie based on the provided id*/
             user = userRepository.findById(userId).orElseThrow(() -> new CustomException("User " + userId + " not found"));
+
+            /*Check there is a seat based on the provided seat number*/
             seat = seatsRepository.findBySeatNumb(seatNum).orElseThrow(() -> new CustomException("Seat " + seatNum + " not found"));
         } catch (CustomException e) {
             response.setHttpCode(404);
             response.setMessage(e.getMessage());
             return response;
         }
+
+        /*Check if a user is accessing his own resources*/
         if (userCheckService.checkUser(userId, response) != null) {
             return response;
         }
         List<String> occupiedSeats = movie.getBookedSeats().stream().map(booked -> booked.getSeat().getSeatNumb()).toList();
+
+        /*Check if the selected seat is already booked*/
         if (occupiedSeats.contains(seat.getSeatNumb())) {
             response.setHttpCode(403);
             response.setMessage("Seat already booked");
@@ -68,7 +78,8 @@ public class TicketServiceImpl implements TicketService {
         bookedSeat.setTicket(ticket);
         bookedSeat.setMovie(movie);
         bookedSeatsRepository.save(bookedSeat);
-        //ticket.setPrice(ticketDTO.getPrice());
+
+        /*Set the ticket price based on the supposed age of the user*/
         if (ticketDTO.getType().name().equals("CHILD")) {
             ticket.setPrice(ticketDTO.getPrice()*childDisc);
         } else if (ticketDTO.getType().name().equals("OVER65")) {
@@ -90,6 +101,8 @@ public class TicketServiceImpl implements TicketService {
     public Response getAll() {
         Response response = new Response();
         List<Ticket> tickets = ticketRepository.findAll();
+
+        /*Check if there are any tickets*/
         if (tickets.isEmpty()) {
             response.setHttpCode(404);
             response.setMessage("No tickets found");
@@ -105,6 +118,8 @@ public class TicketServiceImpl implements TicketService {
     public Response getTicketById(Long id) {
         Response response = new Response();
         Ticket ticket;
+
+        /*Check there is a ticket based on the provided id*/
         try {
             ticket = ticketRepository.findById(id).orElseThrow(() -> new CustomException("Ticket " + id + " not found"));
         } catch (CustomException e) {
@@ -122,7 +137,11 @@ public class TicketServiceImpl implements TicketService {
         Response response = new Response();
         Ticket ticket;
         try {
+
+            /*Check there is a movie based on the provided id*/
             ticket = ticketRepository.findById(id).orElseThrow(() -> new CustomException("Ticket " + id + " not found"));
+
+            /*Past tickets can't be deleted*/
             if (!ticket.getMovie().getStart().isAfter(LocalDateTime.now())) {
                 throw new CustomException("Ticket " + id + " not valid");
             }
@@ -131,6 +150,8 @@ public class TicketServiceImpl implements TicketService {
             response.setMessage(e.getMessage());
             return response;
         }
+
+        /*Check if a user is accessing his own resources*/
         if (userCheckService.checkUser(ticket.getUser().getId(), response) != null) {
             return response;
         }

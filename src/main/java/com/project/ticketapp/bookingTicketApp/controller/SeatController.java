@@ -18,6 +18,10 @@ public class SeatController {
 
     private final SeatService seatService;
 
+    /*
+    Get request that lets admins get all the seats
+     */
+
     @GetMapping("/all")
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<Response> getAllSeats() {
@@ -25,12 +29,22 @@ public class SeatController {
         return ResponseEntity.status(response.getHttpCode()).body(response);
     }
 
+    /*
+    Get request that lets both admins and users get all available seats for a specific movie identified by its title
+    It takes as parameter a request containing the movie title
+     */
+
     @GetMapping("/getAvailableSeatsByMovieId/{id}")
     @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('USER')")
     public ResponseEntity<Response> getAvailableSeatsByMovieId(@PathVariable("id") Long id) {
         Response response = seatService.getAvailableSeatsByMovieId(id);
         return ResponseEntity.status(response.getHttpCode()).body(response);
     }
+
+    /*
+    Post request that lets admins set the specific number of seats in the theater
+    It takes as parameter a request containing the number of seats
+     */
 
     @PostMapping("/setSeats/{num}")
     @PreAuthorize("hasAuthority('ADMIN')")
