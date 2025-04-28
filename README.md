@@ -10,8 +10,8 @@ This project's aim is to create an API capable of managing and storing boookings
 This API support the following operations:
 - registration, login and logout of users
 - creation of a custom number of seats available in the theater
-- managing the different movies (adding, restocking, updating etc...)
-- managing the different ticket sold 
+- managing the movie screenings (adding, restocking, updating etc...)
+- managing the various tickets sold 
 
 
 ## Requirements
