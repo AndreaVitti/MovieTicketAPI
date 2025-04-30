@@ -1,5 +1,5 @@
 
-# Backend for an E-commerce made with Spring Boot
+# Backend for a movie ticket booking app made with Spring Boot
 
 
 ## Description
